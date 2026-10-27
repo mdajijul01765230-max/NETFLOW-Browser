@@ -1,0 +1,68 @@
+import { Bookmark } from "../types";
+
+export const DEFAULT_BOOKMARKS: Bookmark[] = [
+  {
+    id: "wikipedia",
+    title: "Wikipedia (বিশ্বকোষ)",
+    url: "https://en.wikipedia.org/wiki/Main_Page",
+    category: "knowledge",
+    iconName: "BookOpen",
+    isDefault: true,
+  },
+  {
+    id: "gutenberg",
+    title: "Project Gutenberg (ফ্রি বই)",
+    url: "https://www.gutenberg.org/",
+    category: "knowledge",
+    iconName: "Library",
+    isDefault: true,
+  },
+  {
+    id: "bbc-news",
+    title: "BBC News",
+    url: "https://www.bbc.com/news",
+    category: "news",
+    iconName: "Newspaper",
+    isDefault: true,
+  },
+  {
+    id: "hackernews",
+    title: "Hacker News (Lightweight Tech)",
+    url: "https://news.ycombinator.com/",
+    category: "tools",
+    iconName: "Terminal",
+    isDefault: true,
+  },
+  {
+    id: "who-health",
+    title: "World Health Organization",
+    url: "https://www.who.int/",
+    category: "essential",
+    iconName: "HeartPulse",
+    isDefault: true,
+  },
+  {
+    id: "banglapedia",
+    title: "Banglapedia (বাংলাপিডিয়া)",
+    url: "https://bn.banglapedia.org/",
+    category: "knowledge",
+    iconName: "BookMarked",
+    isDefault: true,
+  },
+  {
+    id: "mdn-docs",
+    title: "MDN Web Docs",
+    url: "https://developer.mozilla.org/",
+    category: "tools",
+    iconName: "Code",
+    isDefault: true,
+  },
+  {
+    id: "weather",
+    title: "Global Weather & Forecast",
+    url: "https://wttr.in/",
+    category: "essential",
+    iconName: "CloudSun",
+    isDefault: true,
+  },
+];

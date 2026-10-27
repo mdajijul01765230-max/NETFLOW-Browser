@@ -1,0 +1,164 @@
+name: Android Release Build & Verification
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  android-debug-build:
+    name: Assemble Release APK & Capture Build Logs
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      - name: Set up JDK 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+          cache: "gradle"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ''
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+      - name: Install Android SDK Platforms and Build Tools
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platforms;android-35" "platforms;android-34" "build-tools;34.0.0" "platforms;android-33" || \
+          sdkmanager --channel=3 "platforms;android-36" || \
+          sdkmanager "platforms;android-35" "platforms;android-34" "platforms;android-33" "build-tools;34.0.0" || \
+          sdkmanager "platforms;android-34" "platforms;android-33" "build-tools;34.0.0"
+
+      - name: Install Node dependencies (npm ci with fallback to npm install)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build web assets and sync Capacitor Android project
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          npx cap sync android
+          chmod +x android/gradlew
+
+      - name: Ensure signing keystore exists
+        shell: bash
+        run: |
+          if [ ! -f android/app/debug.keystore ]; then
+            keytool -genkey -v -keystore android/app/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Run Gradle assembleRelease (with pipefail)
+        id: assemble_release
+        shell: bash
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          set -o pipefail
+          chmod +x android/gradlew
+          cd android && ./gradlew assembleRelease --stacktrace --warning-mode all 2>&1 | tee build.log
+
+      - name: Extract compile error output
+        if: always()
+        shell: bash
+        run: |
+          if [ -f android/build.log ]; then
+            grep -iE "(error:|FAILURE:| What went wrong:|Exception|Execution failed for task)" android/build.log > android/compile-errors.txt || true
+          fi
+
+      - name: Upload build.log and compile error output (Always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: netflow-android-build-logs
+          path: |
+            android/build.log
+            android/compile-errors.txt
+          if-no-files-found: warn
+
+      - name: Upload Release APK artifact (On Success)
+        if: steps.assemble_release.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: netflow-android-release-apk
+          path: |
+            android/app/build/outputs/apk/release/*.apk
+            android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+      - name: Run Gradle lintDebug (Non-blocking)
+        id: lint_debug
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          chmod +x android/gradlew
+          cd android && ./gradlew lintDebug --stacktrace 2>&1 | tee lint.log
+
+      - name: Upload Android Lint Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: netflow-android-lint-report
+          path: |
+            android/lint.log
+            android/app/build/reports/lint-results-debug.html
+            android/app/build/reports/lint-results-debug.xml
+            android/app/build/reports/lint-results-debug.txt
+          if-no-files-found: ignore
+
+      - name: Write Build Summary to GITHUB_STEP_SUMMARY
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## NETFLOW Browser V2 — Android Release Build Summary"
+            echo ""
+            echo "- **Assemble Release Outcome:** \`${{ steps.assemble_release.outcome }}\`"
+            echo "- **Lint Debug Outcome:** \`${{ steps.lint_debug.outcome }}\`"
+            echo ""
+            echo "### First 30 Lines Containing \`error:\` (from \`android/build.log\`)"
+            echo "\`\`\`text"
+            if [ -f android/build.log ]; then
+              grep -i "error:" android/build.log | head -n 30 || echo "No lines containing 'error:' found in android/build.log."
+            else
+              echo "android/build.log was not generated."
+            fi
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"

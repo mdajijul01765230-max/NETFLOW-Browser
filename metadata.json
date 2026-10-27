@@ -1,0 +1,7 @@
+{
+  "name": "NETFLOW Browser",
+  "description": "Global trust and human-first smart browser designed for reliable browsing even on weak networks and low-end devices, with privacy shields and AI intelligence.",
+  "requestFramePermissions": ["geolocation", "camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
