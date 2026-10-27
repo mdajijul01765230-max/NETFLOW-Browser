@@ -6380,12 +6380,19 @@ export default function App() {
   }, [activeTabId, resilienceUiTick]);
 
   const sleepingTabsCount = tabs.filter((t) => t.isSuspended).length;
+  const isNativeWithUrl = Boolean(
+    nativeBrowserEngineRef.current?.isNativeEngineAvailable() && activeTab?.url
+  );
 
   return (
     <div
       id="netflow-app-root"
       className={`flex flex-col h-screen w-screen overflow-hidden ${
-        performanceConfig.darkAmoledMode ? "dark bg-black text-white" : "bg-stone-100 text-stone-900"
+        isNativeWithUrl
+          ? "bg-transparent text-stone-900 dark:text-white"
+          : performanceConfig.darkAmoledMode
+          ? "dark bg-black text-white"
+          : "bg-stone-100 text-stone-900"
       }`}
     >
       {/* 1. Top Tab Bar */}
@@ -6889,7 +6896,7 @@ export default function App() {
       )}
 
       {/* 3. Main Browser Canvas */}
-      <main id="netflow-viewport" className="flex-1 flex flex-col min-h-0 relative">
+      <main id="netflow-viewport" className={`flex-1 flex flex-col min-h-0 relative ${isNativeWithUrl ? "bg-transparent" : ""}`}>
         {!activeTab?.url ? (
           <StartPage
             bookmarks={bookmarks}

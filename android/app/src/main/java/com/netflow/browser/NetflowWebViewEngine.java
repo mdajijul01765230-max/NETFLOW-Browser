@@ -208,7 +208,7 @@ public class NetflowWebViewEngine {
     private volatile ValueCallback<Uri[]> activeFileUploadCallback;
 
     private volatile String activeTabId = null;
-    private volatile boolean isViewportVisible = false;
+    private volatile boolean isViewportVisible = true;
     private volatile int viewportLeftCssPx = 0;
     private volatile int viewportTopCssPx = 0;
     private volatile int viewportWidthCssPx = 0;
@@ -252,6 +252,30 @@ public class NetflowWebViewEngine {
             this.tabId = tabId;
             this.isPrivate = isPrivate;
         }
+    }
+
+    public NetflowWebViewEngine(Activity activity) {
+        this(activity, (eventType, payload) -> {
+            WebView shellWebView = (activity instanceof com.getcapacitor.BridgeActivity && ((com.getcapacitor.BridgeActivity) activity).getBridge() != null)
+                    ? ((com.getcapacitor.BridgeActivity) activity).getBridge().getWebView()
+                    : null;
+            NetflowBrowserPlugin.dispatchEngineEventToShell(activity, shellWebView, eventType, payload);
+        });
+    }
+
+    public WebView getWebView() {
+        if (activeTabId == null) {
+            activeTabId = "default_tab";
+        }
+        TabWebViewHolder holder = tabHolders.get(activeTabId);
+        if (holder == null || holder.webView == null) {
+            holder = ensureTabHolderOnUiThread(activeTabId, false);
+        }
+        if (holder != null && holder.webView != null) {
+            holder.webView.setVisibility(View.VISIBLE);
+            return holder.webView;
+        }
+        return null;
     }
 
     public NetflowWebViewEngine(Activity activity, EngineEventSink eventSink) {
@@ -613,7 +637,7 @@ public class NetflowWebViewEngine {
             this.contentContainer = contentContainer;
             this.fullscreenContainer = fullscreenContainer;
             if (this.contentContainer != null) {
-                this.contentContainer.setVisibility(isViewportVisible ? View.VISIBLE : View.GONE);
+                this.contentContainer.setVisibility(View.VISIBLE);
             }
             if (this.fullscreenContainer != null) {
                 this.fullscreenContainer.setVisibility(View.GONE);
@@ -734,7 +758,7 @@ public class NetflowWebViewEngine {
                     FrameLayout.LayoutParams.MATCH_PARENT
             );
             holder.webView.setLayoutParams(lp);
-            holder.webView.setVisibility(tabId.equals(activeTabId) && isViewportVisible ? View.VISIBLE : View.GONE);
+            holder.webView.setVisibility(View.VISIBLE);
             contentContainer.addView(holder.webView);
         }
         return holder;
@@ -1236,7 +1260,7 @@ public class NetflowWebViewEngine {
             if (activeTabId == null) {
                 activeTabId = tabId;
             }
-            if (tabId.equals(activeTabId) && isViewportVisible) {
+            if (tabId.equals(activeTabId)) {
                 holder.webView.setVisibility(View.VISIBLE);
                 holder.webView.onResume();
                 if (contentContainer != null) {

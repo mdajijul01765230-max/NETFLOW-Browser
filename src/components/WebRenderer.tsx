@@ -2642,8 +2642,9 @@ export const WebRenderer: React.FC<WebRendererProps> = ({
   };
 
   if (isNativeEngineAvailable()) {
-    // Return an empty transparent div. The actual Android WebView is rendered natively underneath/above this React layer.
-    return <div className="w-full h-full bg-transparent pointer-events-none" />;
+    // Return an empty transparent div with viewport ref attached.
+    // This allows onSyncNativeViewportBounds to report active viewport dimensions to Android.
+    return <div ref={nativeViewportRef} className="w-full h-full bg-transparent pointer-events-none" />;
   }
 
   // 1. Loading State

@@ -29,9 +29,24 @@ public class MainActivity extends BridgeActivity {
 
         browserEngine = new NetflowWebViewEngine(this, (eventType, payload) -> {
             WebView shellWebView = getBridge() != null ? getBridge().getWebView() : null;
+        if (shellWebView != null) {
+            shellWebView.setBackgroundColor(Color.TRANSPARENT);
+        }
             NetflowBrowserPlugin.dispatchEngineEventToShell(this, shellWebView, eventType, payload);
         });
         NetflowBrowserPlugin.setSharedEngine(browserEngine);
+
+        // FORM 61: Ensure native WebView is created and attached to Android layout
+        FrameLayout rootLayout = findViewById(android.R.id.content);
+        if (rootLayout != null) {
+            WebView nativeWebView = browserEngine.getWebView();
+            if (nativeWebView != null && nativeWebView.getParent() == null) {
+                rootLayout.addView(nativeWebView, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT
+                ));
+            }
+        }
 
         setupNativeBrowserContainers();
         handleIncomingIntent(getIntent());
@@ -102,7 +117,7 @@ public class MainActivity extends BridgeActivity {
 
         contentWebViewContainer = new FrameLayout(this);
         contentWebViewContainer.setId(R.id.netflow_webview_container);
-        contentWebViewContainer.setVisibility(View.GONE);
+        contentWebViewContainer.setVisibility(View.VISIBLE);
         overlayHost.addView(
                 contentWebViewContainer,
                 new FrameLayout.LayoutParams(
