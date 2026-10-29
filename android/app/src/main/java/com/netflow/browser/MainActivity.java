@@ -36,18 +36,6 @@ public class MainActivity extends BridgeActivity {
         });
         NetflowBrowserPlugin.setSharedEngine(browserEngine);
 
-        // FORM 61: Ensure native WebView is created and attached to Android layout
-        FrameLayout rootLayout = findViewById(android.R.id.content);
-        if (rootLayout != null) {
-            WebView nativeWebView = browserEngine.getWebView();
-            if (nativeWebView != null && nativeWebView.getParent() == null) {
-                rootLayout.addView(nativeWebView, new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT
-                ));
-            }
-        }
-
         setupNativeBrowserContainers();
         handleIncomingIntent(getIntent());
 

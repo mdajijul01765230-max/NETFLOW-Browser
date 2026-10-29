@@ -265,14 +265,10 @@ public class NetflowWebViewEngine {
 
     public WebView getWebView() {
         if (activeTabId == null) {
-            activeTabId = "default_tab";
+            return null;
         }
         TabWebViewHolder holder = tabHolders.get(activeTabId);
-        if (holder == null || holder.webView == null) {
-            holder = ensureTabHolderOnUiThread(activeTabId, false);
-        }
         if (holder != null && holder.webView != null) {
-            holder.webView.setVisibility(View.VISIBLE);
             return holder.webView;
         }
         return null;
@@ -1055,9 +1051,13 @@ public class NetflowWebViewEngine {
 
             TabWebViewHolder currHolder = ensureTabHolderOnUiThread(tabId, isPrivate);
             if (currHolder.webView != null) {
-                if (isViewportVisible && !currHolder.currentUrl.isEmpty()) {
+                boolean hasContentOrLoading = !currHolder.currentUrl.isEmpty() || currHolder.isLoading;
+                if (isViewportVisible && hasContentOrLoading) {
                     currHolder.webView.setVisibility(View.VISIBLE);
                     currHolder.webView.onResume();
+                    if (contentContainer != null) {
+                        contentContainer.setVisibility(View.VISIBLE);
+                    }
                 } else {
                     currHolder.webView.setVisibility(View.GONE);
                 }
@@ -1266,6 +1266,8 @@ public class NetflowWebViewEngine {
                 if (contentContainer != null) {
                     contentContainer.setVisibility(View.VISIBLE);
                 }
+            } else {
+                holder.webView.setVisibility(View.GONE);
             }
 
             holder.webView.loadUrl(trimmedUrl);
@@ -2048,13 +2050,15 @@ public class NetflowWebViewEngine {
         }
 
         boolean hasPositiveSize = physicalWidthPx > 0 && physicalHeightPx > 0;
+        boolean hasContentOrLoading = (activeHolder != null)
+                && (!activeHolder.currentUrl.isEmpty() || activeHolder.isLoading);
         boolean shouldShow = visible
                 && hasPositiveSize
                 && activeHolder != null
                 && (!activeHolder.isPrivate || this.privateProfileIsolationActive)
                 && activeHolder.webView != null
                 && !activeHolder.renderProcessGone
-                && !activeHolder.currentUrl.isEmpty();
+                && hasContentOrLoading;
 
         contentContainer.setVisibility(shouldShow ? View.VISIBLE : View.GONE);
         if (activeHolder != null && activeHolder.webView != null) {

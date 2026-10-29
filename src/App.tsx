@@ -827,6 +827,14 @@ export default function App() {
     } catch {}
   }, []);
 
+  // Synchronize initial active tab with native engine
+  useEffect(() => {
+    if (activeTabId) {
+      const initialTabObj = tabsRef.current.find((t) => t.id === activeTabId);
+      nativeBrowserEngineRef.current?.selectTab(activeTabId, Boolean(initialTabObj?.isPrivate));
+    }
+  }, []);
+
   // Save capsules & history to localStorage
   useEffect(() => {
     try {
@@ -1188,6 +1196,9 @@ export default function App() {
         if (omniboxRes.kind === "blocked") {
           const blockedEpoch = (tabRequestEpochRef.current.get(tabId) || 0) + 1;
           tabRequestEpochRef.current.set(tabId, blockedEpoch);
+          if (tabId === activeTabId) {
+            nativeBrowserEngineRef.current?.selectTab(tabId, Boolean(preNavTab?.isPrivate));
+          }
           nativeBrowserEngineRef.current?.loadUrl(tabId, trimmed, {
             isPrivate: Boolean(preNavTab?.isPrivate),
             siteMode: preNavTab?.siteMode || "default",
@@ -1524,6 +1535,9 @@ export default function App() {
             (!currentNavTab?.isPrivate || nativeCapabilities.privateIsolation) &&
             !proxyAllowedForTarget)
         ) {
+          if (tabId === activeTabId) {
+            nativeBrowserEngineRef.current.selectTab(tabId, Boolean(currentNavTab?.isPrivate));
+          }
           nativeBrowserEngineRef.current.setLightMode(tabId, {
             lightMode: resolvedModeInfo.lightMode,
             ...resolvedModeInfo.policy,
@@ -6380,19 +6394,12 @@ export default function App() {
   }, [activeTabId, resilienceUiTick]);
 
   const sleepingTabsCount = tabs.filter((t) => t.isSuspended).length;
-  const isNativeWithUrl = Boolean(
-    nativeBrowserEngineRef.current?.isNativeEngineAvailable() && activeTab?.url
-  );
 
   return (
     <div
       id="netflow-app-root"
       className={`flex flex-col h-screen w-screen overflow-hidden ${
-        isNativeWithUrl
-          ? "bg-transparent text-stone-900 dark:text-white"
-          : performanceConfig.darkAmoledMode
-          ? "dark bg-black text-white"
-          : "bg-stone-100 text-stone-900"
+        performanceConfig.darkAmoledMode ? "dark bg-black text-white" : "bg-stone-100 text-stone-900"
       }`}
     >
       {/* 1. Top Tab Bar */}
@@ -6896,7 +6903,7 @@ export default function App() {
       )}
 
       {/* 3. Main Browser Canvas */}
-      <main id="netflow-viewport" className={`flex-1 flex flex-col min-h-0 relative ${isNativeWithUrl ? "bg-transparent" : ""}`}>
+      <main id="netflow-viewport" className="flex-1 flex flex-col min-h-0 relative">
         {!activeTab?.url ? (
           <StartPage
             bookmarks={bookmarks}
