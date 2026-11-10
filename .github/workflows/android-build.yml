@@ -21,18 +21,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v4
+      - name: Set up Bun 1.4.4
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: "22"
-
-      - name: Cache npm dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json', 'package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-npm-
+          bun-version: "1.4.4"
 
       - name: Set up JDK 21 (Temurin)
         uses: actions/setup-java@v4
@@ -57,22 +49,18 @@ jobs:
           sdkmanager "platforms;android-35" "platforms;android-34" "platforms;android-33" "build-tools;34.0.0" || \
           sdkmanager "platforms;android-34" "platforms;android-33" "build-tools;34.0.0"
 
-      - name: Install Node dependencies (npm ci with fallback to npm install)
+      - name: Install dependencies with Bun (frozen lockfile)
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
+          bun install --frozen-lockfile
 
       - name: Build web assets and sync Capacitor Android project
         shell: bash
         run: |
           set -euo pipefail
-          npm run build
-          npx cap sync android
+          bun run build
+          bun x cap sync android
           chmod +x android/gradlew
 
       - name: Ensure signing keystore exists
