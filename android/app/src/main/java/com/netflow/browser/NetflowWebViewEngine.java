@@ -21,6 +21,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.print.PrintAttributes;
+import android.print.PrintDocumentAdapter;
+import android.print.PrintManager;
 import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
@@ -1361,6 +1364,46 @@ public class NetflowWebViewEngine {
                 holder.webView.clearMatches();
             }
         });
+    }
+
+    public boolean printPage(final String tabId) {
+        if (activity == null) return false;
+        final String targetTabId = (tabId != null && !tabId.trim().isEmpty()) ? tabId.trim() : activeTabId;
+        if (targetTabId == null) return false;
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            return false;
+        }
+
+        runOnUiThread(() -> {
+            TabWebViewHolder holder = tabHolders.get(targetTabId);
+            if (holder == null || holder.webView == null) {
+                return;
+            }
+            try {
+                PrintManager printManager = (PrintManager) activity.getSystemService(Context.PRINT_SERVICE);
+                if (printManager == null) {
+                    return;
+                }
+                String docName = (holder.title != null && !holder.title.trim().isEmpty())
+                        ? holder.title.trim().replaceAll("[^a-zA-Z0-9_-]", "_")
+                        : "Document";
+                String jobName = "NETFLOW_" + docName;
+                PrintDocumentAdapter printAdapter;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    printAdapter = holder.webView.createPrintDocumentAdapter(jobName);
+                } else {
+                    printAdapter = holder.webView.createPrintDocumentAdapter();
+                }
+                if (printAdapter != null) {
+                    PrintAttributes.Builder builder = new PrintAttributes.Builder();
+                    builder.setMediaSize(PrintAttributes.MediaSize.ISO_A4);
+                    printManager.print(jobName, printAdapter, builder.build());
+                }
+            } catch (Throwable ignored) {
+            }
+        });
+        return true;
     }
 
     public void setZoomLevel(final String tabId, final int zoomLevel) {

@@ -6,6 +6,7 @@ export interface FormSubmitOptions {
   method?: "GET" | "POST";
   postBody?: string;
   contentType?: string;
+  customHeaders?: Record<string, string>;
 }
 
 export interface PageStats {

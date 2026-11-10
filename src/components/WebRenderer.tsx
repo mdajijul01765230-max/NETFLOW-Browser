@@ -3138,7 +3138,10 @@ export const WebRenderer: React.FC<WebRendererProps> = ({
     );
   }
 
-  if (ytVideoId) {
+  // FORM 73E: In native Android engine mode, bypass React iframe/portal fallbacks so the
+  // real System Chromium WebView renders full mobile YouTube (m.youtube.com).
+  // Retain iframe embed and fallback portal strictly in Web Preview sandbox environments.
+  if (!isRealAndroidNativeEngineActive && ytVideoId) {
     return (
       <div className="flex-1 flex flex-col bg-stone-950 text-white w-full h-full min-h-[500px]">
         {/* Player Header */}
@@ -3168,7 +3171,7 @@ export const WebRenderer: React.FC<WebRendererProps> = ({
               key={`yt-${ytVideoId}`}
               title="YouTube Video Player"
               src={`https://www.youtube.com/embed/${ytVideoId}?autoplay=1&rel=0`}
-              sandbox="allow-same-origin allow-scripts allow-presentation allow-forms"
+              sandbox="allow-scripts allow-presentation allow-forms"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
               allowFullScreen={true}
@@ -3180,13 +3183,15 @@ export const WebRenderer: React.FC<WebRendererProps> = ({
     );
   }
 
-  if (isYtPortal) {
+  if (!isRealAndroidNativeEngineActive && isYtPortal) {
     return (
-      <YouTubeFallbackPortal
-        currentUrl={tab.url}
-        lang={lang}
-        onNavigate={onNavigate}
-      />
+      <div className="flex-1 flex flex-col w-full h-full min-h-[500px] overflow-y-auto">
+        <YouTubeFallbackPortal
+          currentUrl={tab.url}
+          lang={lang}
+          onNavigate={onNavigate}
+        />
+      </div>
     );
   }
 
@@ -3201,8 +3206,9 @@ export const WebRenderer: React.FC<WebRendererProps> = ({
     );
   }
 
-  // Graceful empty state for restored tabs without content
-  if (tab.url && !tab.contentHtml && !tab.isLoading && !tab.error) {
+  // Graceful empty state for restored tabs without content (strictly for Web Preview / non-native tabs)
+  // Native Android tabs render directly via System Chromium WebView without populating contentHtml.
+  if (!isRealAndroidNativeEngineActive && !tab.isNativeWebView && tab.url && !tab.contentHtml && !tab.isLoading && !tab.error) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-stone-600 dark:text-stone-300 select-none">
         <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mb-3 text-emerald-600 dark:text-emerald-400">

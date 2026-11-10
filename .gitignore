@@ -27,3 +27,13 @@ android/local.properties
 *.iml
 .vscode/
 
+# AI Studio temporary platform artifacts
+.aistudio/
+
+# Historical backup files — preserve locally, exclude from Git
+*.bak*
+
+# Generated Node.js backend artifacts inside Android public assets
+/android/app/src/main/assets/public/server.cjs
+/android/app/src/main/assets/public/server.cjs.map
+

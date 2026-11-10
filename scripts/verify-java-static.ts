@@ -142,6 +142,7 @@ const downloadManagerCodeOnly = stripJavaComments(downloadManagerSrc);
     "onPause",
     "onDestroy",
     "onBackPressed",
+    "handleOnBackPressed",
     // Capacitor Plugin
     "load",
     "handleOnDestroy",

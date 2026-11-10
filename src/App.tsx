@@ -1218,60 +1218,70 @@ export default function App() {
       }
 
       // FORM 56 / 53 Task 1 & 2: YouTube URL Interceptor & Direct Routing
-      const ytVideoId = extractYouTubeVideoId(normalizedUrl);
-      if (ytVideoId && !normalizedUrl.includes("/embed/")) {
-        normalizedUrl = `https://www.youtube.com/embed/${ytVideoId}`;
-      }
+      // FORM 73E: Only divert to sandboxed embed player / fallback portal when Native Android Engine is NOT available.
+      // On real Android devices, preserve the canonical YouTube URL and route through the native Chromium WebView pipeline.
+      const isNativeExecutionCandidate = Boolean(
+        isNativeOmniboxPath ||
+        (nativeBrowserEngineRef.current?.isNativeEngineAvailable() &&
+          (!preNavTab?.isPrivate || nativeCapabilities.privateIsolation))
+      );
 
-      if (isYouTubeUrl(normalizedUrl)) {
-        if (ytVideoId) {
-          // Commit directly to YouTube Embed Player without unneeded proxy call
-          setTabs((prev) =>
-            prev.map((t) => {
-              if (t.id !== tabId) return t;
-              const safeHist = t.history || [];
-              const nextHist = isHistoryNav ? safeHist : [...safeHist.slice(0, (t.historyIndex ?? 0) + 1), normalizedUrl];
-              const nextIdx = isHistoryNav ? (targetHistoryIndex ?? t.historyIndex ?? 0) : nextHist.length - 1;
-              return {
-                ...t,
-                url: normalizedUrl,
-                title: "YouTube Player",
-                contentHtml: "",
-                isLoading: false,
-                error: undefined,
-                errorInfo: undefined,
-                history: nextHist,
-                historyIndex: nextIdx,
-                isNativeWebView: false,
-                renderMode: "native_webview",
-              };
-            })
-          );
-          return;
-        } else {
-          // Commit directly to Smart YouTube Fallback Portal
-          setTabs((prev) =>
-            prev.map((t) => {
-              if (t.id !== tabId) return t;
-              const safeHist = t.history || [];
-              const nextHist = isHistoryNav ? safeHist : [...safeHist.slice(0, (t.historyIndex ?? 0) + 1), normalizedUrl];
-              const nextIdx = isHistoryNav ? (targetHistoryIndex ?? t.historyIndex ?? 0) : nextHist.length - 1;
-              return {
-                ...t,
-                url: normalizedUrl,
-                title: "YouTube",
-                contentHtml: "",
-                isLoading: false,
-                error: undefined,
-                errorInfo: undefined,
-                history: nextHist,
-                historyIndex: nextIdx,
-                isNativeWebView: false,
-                renderMode: "sanitized_html",
-              };
-            })
-          );
-          return;
+      if (!isNativeExecutionCandidate) {
+        const ytVideoId = extractYouTubeVideoId(normalizedUrl);
+        if (ytVideoId && !normalizedUrl.includes("/embed/")) {
+          normalizedUrl = `https://www.youtube.com/embed/${ytVideoId}`;
+        }
+
+        if (isYouTubeUrl(normalizedUrl)) {
+          if (ytVideoId) {
+            // Commit directly to YouTube Embed Player without unneeded proxy call
+            setTabs((prev) =>
+              prev.map((t) => {
+                if (t.id !== tabId) return t;
+                const safeHist = t.history || [];
+                const nextHist = isHistoryNav ? safeHist : [...safeHist.slice(0, (t.historyIndex ?? 0) + 1), normalizedUrl];
+                const nextIdx = isHistoryNav ? (targetHistoryIndex ?? t.historyIndex ?? 0) : nextHist.length - 1;
+                return {
+                  ...t,
+                  url: normalizedUrl,
+                  title: "YouTube Player",
+                  contentHtml: "",
+                  isLoading: false,
+                  error: undefined,
+                  errorInfo: undefined,
+                  history: nextHist,
+                  historyIndex: nextIdx,
+                  isNativeWebView: false,
+                  renderMode: "native_webview",
+                };
+              })
+            );
+            return;
+          } else {
+            // Commit directly to Smart YouTube Fallback Portal
+            setTabs((prev) =>
+              prev.map((t) => {
+                if (t.id !== tabId) return t;
+                const safeHist = t.history || [];
+                const nextHist = isHistoryNav ? safeHist : [...safeHist.slice(0, (t.historyIndex ?? 0) + 1), normalizedUrl];
+                const nextIdx = isHistoryNav ? (targetHistoryIndex ?? t.historyIndex ?? 0) : nextHist.length - 1;
+                return {
+                  ...t,
+                  url: normalizedUrl,
+                  title: "YouTube",
+                  contentHtml: "",
+                  isLoading: false,
+                  error: undefined,
+                  errorInfo: undefined,
+                  history: nextHist,
+                  historyIndex: nextIdx,
+                  isNativeWebView: false,
+                  renderMode: "sanitized_html",
+                };
+              })
+            );
+            return;
+          }
         }
       }
 
@@ -1594,6 +1604,7 @@ export default function App() {
             httpMethod: formOptions?.method || "GET",
             postBody: formOptions?.postBody,
             postContentType: formOptions?.contentType,
+            customHeaders: formOptions?.customHeaders,
             tabId,
             siteMode: currentNavTab?.siteMode || "default",
             searchEngineId: searchEngineIdRef.current,
@@ -4636,9 +4647,14 @@ export default function App() {
 
     // Lazy load restored tab content on switch if not yet loaded (never auto-resubmit POST or re-trigger a failed uncommitted navigation)
     const targetTab = tabs.find((t) => t.id === id);
+    const isAlreadyLoadedInNative = Boolean(
+      targetTab?.isNativeWebView &&
+      nativeBrowserEngineRef.current?.getTabState?.(id)?.currentUrl
+    );
     if (
       targetTab &&
       targetTab.url &&
+      !isAlreadyLoadedInNative &&
       isValidSafeUrl(targetTab.url) &&
       !targetTab.contentHtml &&
       !targetTab.isLoading &&
@@ -5517,6 +5533,14 @@ export default function App() {
       lang === "bn" ? translations.bn.pagePrintNotice : translations.en.pagePrintNotice,
       1500
     );
+
+    // 0. If Native Android engine is available, dispatch native print
+    if (nativeBrowserEngineRef.current?.isNativeEngineAvailable() && activeTabId) {
+      const dispatched = nativeBrowserEngineRef.current.printPage(activeTabId);
+      if (dispatched) {
+        return;
+      }
+    }
 
     // 1. Try interactive iframe printing if active
     const activeFrame = document.querySelector<HTMLIFrameElement>("#interactive-chromium-frame");

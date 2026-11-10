@@ -90,7 +90,9 @@ export const FacebookViewer: React.FC<FacebookViewerProps> = ({
         }
       }
 
-      onNavigate(dest, tab.id);
+      onNavigate(dest, tab.id, false, undefined, undefined, {
+        customHeaders: { Referer: currentDisplayUrl },
+      });
     };
 
     const handleSubmit = (e: Event) => {
@@ -132,6 +134,7 @@ export const FacebookViewer: React.FC<FacebookViewerProps> = ({
           method: "POST",
           postBody: paramsStr,
           contentType: "application/x-www-form-urlencoded",
+          customHeaders: { Referer: currentDisplayUrl },
         });
       } else {
         const fullUrl = paramsStr
@@ -139,7 +142,9 @@ export const FacebookViewer: React.FC<FacebookViewerProps> = ({
             ? `${actionUrl}&${paramsStr}`
             : `${actionUrl}?${paramsStr}`
           : actionUrl;
-        onNavigate(fullUrl, tab.id);
+        onNavigate(fullUrl, tab.id, false, undefined, undefined, {
+          customHeaders: { Referer: currentDisplayUrl },
+        });
       }
     };
 

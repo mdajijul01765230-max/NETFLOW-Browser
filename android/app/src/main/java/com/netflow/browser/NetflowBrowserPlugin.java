@@ -241,6 +241,10 @@ public class NetflowBrowserPlugin extends Plugin {
             case "SET_SITE_MODE":
                 engine.setSiteMode(tabId, siteMode, actionObj.optBoolean("reload", true));
                 break;
+            case "PRINT":
+            case "printPage":
+                engine.printPage(tabId);
+                break;
             case "SET_VIEWPORT_BOUNDS":
                 engine.setViewportBounds(
                         actionObj.optInt("left", 0),

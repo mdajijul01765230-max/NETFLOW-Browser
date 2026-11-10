@@ -542,8 +542,9 @@ console.log("\n3. TypeScript <-> Native Android Bridge & Per-Tab Controller Veri
   // Form 54: On native Android, native WebView is forced to avoid ERR_CONNECTION_FAILED proxy errors
   assert(
     engine.isPrivateIsolationSupported() === false &&
-      engine.shouldUseNativeWebView("full", true) === true,
-    "Form 54: On native Android, shouldUseNativeWebView returns true for all tabs to avoid localhost proxy errors"
+      engine.shouldUseNativeWebView("full", false) === true &&
+      engine.shouldUseNativeWebView("full", true) === false,
+    "Form 54 & Form 8/110: On native Android, normal tabs use native WebView and private tabs gate on privateIsolation"
   );
 
   const privFallbackLoad = engine.loadUrl("priv-fallback-1", "https://example.com/private", {

@@ -765,6 +765,7 @@ export interface NativeBrowserEngine {
     imageUrl?: string
   ) => boolean;
   openExternalBrowser: (urlOrPayload: string | { url: string }) => boolean;
+  printPage: (tabId?: string) => boolean;
 
   // Viewport & modal overlay coordination
   syncViewportBounds: (bounds: NativeViewportBounds) => void;
@@ -1872,14 +1873,16 @@ export function resolveBrowserExecutionEngine(
   isPrivate = false,
   privateIsolationSupported = false
 ): BrowserExecutionEngine {
-  // Force native WebView on Android devices to avoid localhost proxy errors
+  // If private browsing is requested but the runtime lacks MULTI_PROFILE isolation,
+  // route to proxy_fallback with honest notice (GATE-05 invariant).
+  if (isPrivate && !privateIsolationSupported) {
+    return "proxy_fallback";
+  }
+  // On Native Android devices with profile isolation (or non-private tabs), use native WebView
   if (isNativeAvailable) {
     return "native_chromium_webview";
   }
   // Fallback for web preview
-  if (isPrivate && !privateIsolationSupported) {
-    return "proxy_fallback";
-  }
   return "proxy_fallback";
 }
 
@@ -2361,6 +2364,13 @@ export function createNativeBrowserEngine(
     sendNativeCommand("LAUNCH_EXTERNAL_BROWSER", {
       url: safeUrl,
     });
+    return true;
+  };
+
+  const printPage: NativeBrowserEngine["printPage"] = (tabId?: string) => {
+    const targetTabId = tabId || activeTabId;
+    if (!targetTabId) return false;
+    sendNativeCommand("PRINT", { tabId: targetTabId });
     return true;
   };
 
@@ -3962,6 +3972,7 @@ export function createNativeBrowserEngine(
     shareUrl,
     downloadImage,
     openExternalBrowser,
+    printPage,
     syncViewportBounds,
     setWebViewVisible,
     getViewportBounds,

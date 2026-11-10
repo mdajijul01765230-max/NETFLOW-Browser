@@ -1,4 +1,4 @@
-name: Android Release Build & Verification
+name: Android Debug Build & Verification
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   android-debug-build:
-    name: Assemble Release APK & Capture Build Logs
+    name: Assemble Debug APK & Capture Build Logs
     runs-on: ubuntu-latest
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
@@ -82,8 +82,8 @@ jobs:
             keytool -genkey -v -keystore android/app/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-      - name: Run Gradle assembleRelease (with pipefail)
-        id: assemble_release
+      - name: Run Gradle assembleDebug (with pipefail)
+        id: assemble_debug
         shell: bash
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
@@ -91,7 +91,7 @@ jobs:
         run: |
           set -o pipefail
           chmod +x android/gradlew
-          cd android && ./gradlew assembleRelease --stacktrace --warning-mode all 2>&1 | tee build.log
+          cd android && ./gradlew assembleDebug --stacktrace --warning-mode all 2>&1 | tee build.log
 
       - name: Extract compile error output
         if: always()
@@ -111,14 +111,13 @@ jobs:
             android/compile-errors.txt
           if-no-files-found: warn
 
-      - name: Upload Release APK artifact (On Success)
-        if: steps.assemble_release.outcome == 'success'
+      - name: Upload Debug APK artifact (On Success)
+        if: steps.assemble_debug.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: netflow-android-release-apk
+          name: netflow-android-debug-apk
           path: |
-            android/app/build/outputs/apk/release/*.apk
-            android/app/build/outputs/apk/**/*.apk
+            android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: Run Gradle lintDebug (Non-blocking)
@@ -148,9 +147,9 @@ jobs:
         shell: bash
         run: |
           {
-            echo "## NETFLOW Browser V2 — Android Release Build Summary"
+            echo "## NETFLOW Browser V2 — Android Debug Build Summary"
             echo ""
-            echo "- **Assemble Release Outcome:** \`${{ steps.assemble_release.outcome }}\`"
+            echo "- **Assemble Debug Outcome:** \`${{ steps.assemble_debug.outcome }}\`"
             echo "- **Lint Debug Outcome:** \`${{ steps.lint_debug.outcome }}\`"
             echo ""
             echo "### First 30 Lines Containing \`error:\` (from \`android/build.log\`)"

@@ -2433,7 +2433,17 @@ app.post("/api/browse", async (req: Request, res: Response) => {
     };
 
     if (isFacebook) {
-      headers["Referer"] = "https://www.google.com/";
+      const fbReferer = customHeaders?.Referer || customHeaders?.referer;
+      if (fbReferer && isFacebookUrl(fbReferer)) {
+        headers["Referer"] = fbReferer;
+        headers["Sec-Fetch-Site"] = "same-origin";
+      } else {
+        delete headers["Referer"];
+        headers["Sec-Fetch-Site"] = "none";
+      }
+      headers["Sec-Fetch-Dest"] = "document";
+      headers["Sec-Fetch-Mode"] = "navigate";
+      headers["Sec-Fetch-User"] = "?1";
       // Use lightweight basic mobile user-agent to guarantee Facebook returns clean server-rendered mbasic HTML
       headers["User-Agent"] =
         "Mozilla/5.0 (Linux; U; Android 4.4.2; en-us; LGMS323 Build/KOT49I.MS32310c) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/30.0.0.0 Mobile Safari/537.36";

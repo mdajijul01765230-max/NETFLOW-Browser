@@ -103,9 +103,21 @@ export const StartPage: React.FC<StartPageProps> = ({
             <span>GLOBAL TRUST &amp; HUMAN-FIRST SMART BROWSER</span>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-stone-900 dark:text-stone-50 font-serif">
-            NETFLOW
-          </h1>
+          <div className="flex items-center justify-center gap-2.5 sm:gap-3">
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-stone-900 dark:text-stone-50 font-serif">
+              NETFLOW
+            </h1>
+            <svg
+              id="bangladesh-flag"
+              viewBox="0 0 100 60"
+              className="w-6 h-[14.4px] sm:w-7 sm:h-[16.8px] shrink-0 rounded-[2px] overflow-hidden inline-block align-middle"
+              aria-label="Bangladesh Flag"
+              role="img"
+            >
+              <rect width="100" height="60" fill="#8FC9A3" />
+              <circle cx="45" cy="30" r="20" fill="#E88980" />
+            </svg>
+          </div>
 
           <p className="text-base text-stone-600 dark:text-stone-300 max-w-xl mx-auto font-medium leading-relaxed">
             {t.tagline}
