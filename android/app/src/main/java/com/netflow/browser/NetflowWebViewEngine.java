@@ -1385,8 +1385,8 @@ public class NetflowWebViewEngine {
                 if (printManager == null) {
                     return;
                 }
-                String docName = (holder.title != null && !holder.title.trim().isEmpty())
-                        ? holder.title.trim().replaceAll("[^a-zA-Z0-9_-]", "_")
+                String docName = (holder.currentTitle != null && !holder.currentTitle.trim().isEmpty())
+                        ? holder.currentTitle.trim().replaceAll("[^a-zA-Z0-9_-]", "_")
                         : "Document";
                 String jobName = "NETFLOW_" + docName;
                 PrintDocumentAdapter printAdapter;
